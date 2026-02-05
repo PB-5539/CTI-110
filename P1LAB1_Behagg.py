@@ -3,6 +3,6 @@
 #P1LAB1
 #A short python assignment to use inputs and outputs
 
-print("Enter your name")
-name = input()
-print("hello,", name)
+first_name = input("Enter your first name:")
+last_name = input("Enter your last name:")
+print("hello,", first_name, last_name + "!", "Welcome to CTI-110")
