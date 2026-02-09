@@ -35,3 +35,5 @@ elif operation_type == "both" or operation_type == "Both":
     exponent_number = int(input("what is the power to raise the base to?"))
     result = pow(base_number, exponent_number)
     print("base:", base_number, "exp:", exponent_number, "=", result)
+else:
+    print("invalid operation type! Please enter Addition, Exponents, or Both after restarting the program.")
