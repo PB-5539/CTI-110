@@ -1,13 +1,13 @@
 #Parker Behagg 
 #2/5/2026
 #P1HW1
-# simple calculator
+#simple calculator
 
 #----define the calculator as a function to allow re-running without restarting the file----
 def calculator():
- #----promtp the user for the type of calculation they want to perform----
+#----promtp the user for the type of calculation they want to perform----
     operation_type = input("which would you like to calculate, Exponents or Additon? ")
- #----use if statements to determine which type of calculation the user wants to perform----
+#----use if statements to determine which type of calculation the user wants to perform----
     if operation_type.lower() == "addition":                                                                            #addition and subtraction
         print("operation selected: Addition")
         print()
