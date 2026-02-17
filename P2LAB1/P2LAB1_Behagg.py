@@ -5,15 +5,24 @@
 
 import math
 radius = 0
-diameter = 0
-circumference = 0
-area = 0
-
-radius = float(input("Enter the radius of the circle: "))
-
-diameter = 2 * radius
-circumference = 2 * math.pi * radius
-area = math.pi * radius ** 2
-print("Diameter:", diameter)
-print("Circumference:", circumference)
-print("Area:", area)
+diameter = float(0)
+circumference = float(0)
+area = float(0)
+print()
+radius = input("Enter the radius of the circle: ")
+if radius == "exit":
+    print("Exiting the program.")
+else:
+    radius = float(radius)
+    diameter = 2 * radius
+    circumference = 2 * math.pi * radius
+    area = math.pi * radius ** 2
+    print()
+    print("----Results----")
+    print()
+    print(f"Diameter: {diameter:.1f}")
+    print()
+    print(f"Circumference: {circumference:.2f}")
+    print()
+    print(f"Area: {area:.3f}")
+    print()
