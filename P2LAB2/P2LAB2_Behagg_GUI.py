@@ -23,7 +23,6 @@ def calculate_mpg():
         label_mpg.config(text=f"The miles per gallon for the {car} is: {mpg:.2f}")
     else:
         label_mpg.config(text=f"Sorry, the miles per gallon for the {car} is not available.")
-        return
     
     miles = entry_miles.get()
     try:
