@@ -1,7 +1,7 @@
 #Parker Behagg 
-#2/5/2026
+#2/24/2026
 #P2HW1
-# simple travel calculator, now with formatting
+# simple travel calculator, now with alignment and formatting!
 
 print("please fill out the following travel information to the best of your ability.")
 budget = float(input("What is your total budget for the trip (in USD)? "))
@@ -15,10 +15,13 @@ remaining_budget = budget - total_expenses
 
 print()
 print("----Travel Summary----")
-print("Destination:", destination)
-print("Total Budget: $" + f"{budget:,.2f}")
-print("Estimated Gas Cost: $" + f"{gas:,.2f}")
-print("Estimated Accomodation Cost: $" + f"{accomodation:,.2f}")
-print("Estimated Food Cost: $" + f"{food:,.2f}")
-print("Total Estimated Expenses: $" + f"{total_expenses:,.2f}")
-print("Remaining Budget after Expenses: $" + f"{remaining_budget:,.2f}")
+print(f"{"Destination:":<35} {destination}")
+print(f"{"Total Budget:":<35} ${budget:.2f}")
+print(f"{"Estimated Gas Cost:":<35} ${gas:.2f}")
+print(f"{"Estimated Accomodation Cost:":<35} ${accomodation:.2f}")
+print(f"{"Estimated Food Cost:":<35} ${food:.2f}")
+print(f"{"Total Estimated Expenses:":<35} ${total_expenses:.2f}")
+print()
+print("----Budget Analysis----")
+print(f"{"Budget Status:":<35} {'Within Budget' if remaining_budget >= 0 else 'Over Budget'}")
+print(f"{"Remaining Budget:":<35} ${remaining_budget:.2f}")
