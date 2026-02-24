@@ -14,7 +14,7 @@ remaining_budget = budget - total_expenses
 
 
 print()
-print("----Travel Summary----")
+print("----------------Travel Summary----------------")
 print(f"{"Destination:":<35} {destination}")
 print(f"{"Total Budget:":<35} ${budget:.2f}")
 print(f"{"Estimated Gas Cost:":<35} ${gas:.2f}")
@@ -22,6 +22,6 @@ print(f"{"Estimated Accomodation Cost:":<35} ${accomodation:.2f}")
 print(f"{"Estimated Food Cost:":<35} ${food:.2f}")
 print(f"{"Total Estimated Expenses:":<35} ${total_expenses:.2f}")
 print()
-print("----Budget Analysis----")
+print("----------------Budget Analysis----------------")
 print(f"{"Budget Status:":<35} {'Within Budget' if remaining_budget >= 0 else 'Over Budget'}")
 print(f"{"Remaining Budget:":<35} ${remaining_budget:.2f}")
