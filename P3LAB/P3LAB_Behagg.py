@@ -5,28 +5,29 @@
 
 #initialize variables
 amount = float(0.00)
-dollars = float(0.00)
-quarters = float(0.00)
-dimes = float(0.00)
-nickels = float(0.00)
-pennies = float(0.00)
+dollars = int(0.00)
+quarters = int(0.00)
+dimes = int(0.00)
+nickels = int(0.00)
+pennies = int(0.00)
 
 #prompt user
 amount = float(input("Enter money as Float: "))
 
-
-
+#prevents floating point data storage errors
+amount = round(amount * 100, 2)
+amount = int(amount)
 
 #calculate Change
-dollars = amount // 1
-amount = amount - dollars
-quarters = amount // 0.25
-amount = amount - (quarters*0.25)
-dimes = amount // 0.1
-amount = amount - (dimes*0.1)
-nickels = amount // 0.05
-amount = amount - (nickels*0.05)
-pennies = amount // 0.01
+dollars = amount // 100
+amount = amount - (dollars*100)
+quarters = amount // 25
+amount = amount - (quarters*25)
+dimes = amount // 10
+amount = amount - (dimes*10)
+nickels = amount // 5
+amount = amount - (nickels*5)
+pennies = amount // 1
 
 #decide what outputs to print
 if amount == 0:
