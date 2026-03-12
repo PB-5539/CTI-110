@@ -17,6 +17,14 @@ high = max(grades)
 total = sum(grades)
 avg = total / len(grades)
 # determine letter grade for average
+#display results
+print()
+print("----Results----")
+print("Lowest grade: " + str(low))
+print("Highest grade: " + str(high))
+print("Average grade: " + str(f"{avg:.2f}"))
+print("Total grade: " + str(total))
+
 if avg >= 90:
     print('Your grade is: A')
 elif avg > 80:
