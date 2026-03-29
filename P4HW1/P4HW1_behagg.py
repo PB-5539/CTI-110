@@ -10,14 +10,14 @@ temp_score = 0
 while yesno.lower() == "yes":
     score_amount = int(input("How Many Scores to enter: "))
     for i in range(score_amount):
-        temp_score = int(input(f"Enter Score {i}: "))
+        temp_score = int(input(f"Enter Score {i+1}: "))
         if (temp_score >= 0) and (temp_score <= 100):
             scores.append(temp_score)
         else:
             while not ((temp_score >= 0) and (temp_score <= 100)):
                 print("invalid input")
                 print("acceptable range: 0 - 100")
-                temp_score = int(input(f"Enter Score {i}: "))
+                temp_score = int(input(f"Enter Score {i+1} again: "))
             if (temp_score >= 0) and (temp_score <= 100):
                 scores.append(temp_score)
     lowest = min(scores)
@@ -33,8 +33,22 @@ while yesno.lower() == "yes":
     elif (average < 60):
         grade = "F"
     print("==============Results==============")
-    print(f"{"Lowest Score":>35}{":":<1}{lowest:<5}")
-    print(f"{"Raw List Data":>35}{":":<1}{scores:<5}")
-    print(f"{"Average":>35}{":":<1}{average:<5}")
-    print(f"{"Lowest Score":>35}{":":<1}{lowest:<5}")
+    print(f"{"Lowest Score":<15}{":":<1}{lowest:<5}")
+    print(f"{"Raw List Data":<15}{":":<1}{str(scores):<5}")
+    print(f"{"Average":<15}{":":<1}{average:<5}")
+    print(f"{"Lowest Score":<15}{":":<1}{lowest:<5}")
     print("===================================")
+    print()
+    yesno = input("would you like to run the program again? ")
+    while not ((yesno.lower() in ["y", "yes", "ye"]) or (yesno.lower() in ["n", "no"])):
+        if yesno.lower() in ["y", "yes", "ye"]:
+            yesno = "yes"
+        elif yesno.lower() in ["n", "no"]:
+            yesno = "no"
+        else: 
+            print("invalid input")
+    
+    
+    
+    
+    
