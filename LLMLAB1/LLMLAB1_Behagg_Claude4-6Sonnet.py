@@ -22,10 +22,24 @@ import threading
 # ─────────────────────────────────────────────
 #  CONSTANTS
 # ─────────────────────────────────────────────
-TILE  = 48          # pixel size of one grid tile
-COLS  = 15          # map width  (tiles)
-ROWS  = 11          # map height (tiles)
+TILE  = 24          # pixel size of one grid tile
+COLS  = 30          # map width  (tiles)
+ROWS  = 22          # map height (tiles)
 FPS   = 30
+MAX_FLOORS = 50
+
+# ─────────────────────────────────────────────
+#  LEVEL GENERATION CONSTANTS
+# ─────────────────────────────────────────────
+GEN_BASE_ROOMS = 12        # starting number of rooms per floor
+GEN_ROOMS_PER_FLOOR = 1   # increase rooms every N floors
+GEN_MAX_ROOMS = 25         # cap max rooms per floor
+GEN_CORRIDOR_MIN = 2      # minimum corridor length
+GEN_CORRIDOR_MAX = 8      # maximum corridor length
+GEN_CHEST_MIN = 3         # minimum chests per floor
+GEN_CHEST_MAX = 7         # maximum chests per floor
+GEN_MONSTER_MIN = 2       # minimum monsters per floor
+GEN_MONSTER_MAX = 12      # maximum monsters per floor
 
 COLORS = {
     "bg":          "#0d0d0f",
@@ -56,63 +70,94 @@ COLORS = {
 # ─────────────────────────────────────────────
 ITEM_STATS = {
     "sword":    {"type": "weapon",  "damage": 8,  "value": 20, "stack": 1},
-    "shield":   {"type": "armor",   "defense": 4, "value": 15, "stack": 1},
+    "shield":   {"type": "shield",  "defense": 4, "value": 15, "stack": 1},
     "potion":   {"type": "consumable", "heal": 25, "value": 10, "stack": 5},
     "gold":     {"type": "currency","value": 1,   "stack": 99},
     "dagger":   {"type": "weapon",  "damage": 5,  "value": 12, "stack": 1},
     "bow":      {"type": "weapon",  "damage": 6,  "value": 18, "stack": 1},
     "chest_armor": {"type": "armor","defense": 6, "value": 25, "stack": 1},
     "torch":    {"type": "misc",    "light": 3,   "value": 5,  "stack": 10},
+    "elixir":   {"type": "consumable", "heal": 75, "value": 120, "stack": 2},
+    "magic_ring": {"type": "misc",  "value": 200, "stack": 1},
+    "greatsword": {"type": "weapon", "damage": 14, "value": 150, "stack": 1},
+    "plate_armor": {"type": "armor", "defense": 12, "value": 180, "stack": 1},
+    "gem": {"type": "currency", "value": 10, "stack": 20},
+    "wooden_shield": {"type": "shield", "defense": 3, "value": 12, "stack": 1},
+    "iron_shield": {"type": "shield", "defense": 5, "value": 35, "stack": 1},
+    "steel_shield": {"type": "shield", "defense": 7, "value": 60, "stack": 1},
+    "leather_armor": {"type": "armor", "defense": 4, "value": 18, "stack": 1},
+    "chain_mail": {"type": "armor", "defense": 8, "value": 45, "stack": 1},
+    "bronze_armor": {"type": "armor", "defense": 10, "value": 85, "stack": 1},
+    "dragon_scale": {"type": "armor", "defense": 15, "value": 300, "stack": 1},
+    "mithril_sword": {"type": "weapon", "damage": 16, "value": 200, "stack": 1},
+    "dragon_slayer": {"type": "weapon", "damage": 20, "value": 400, "stack": 1},
+    "ancient_bow": {"type": "weapon", "damage": 12, "value": 120, "stack": 1},
+    "crossbow": {"type": "weapon", "damage": 10, "value": 80, "stack": 1},
+    "mace": {"type": "weapon", "damage": 11, "value": 70, "stack": 1},
+    "battle_axe": {"type": "weapon", "damage": 13, "value": 110, "stack": 1},
+    "spear": {"type": "weapon", "damage": 9, "value": 50, "stack": 1},
+    "healing_potion": {"type": "consumable", "heal": 50, "value": 40, "stack": 10},
+    "minor_elixir": {"type": "consumable", "heal": 40, "value": 60, "stack": 5},
+    "legendary_elixir": {"type": "consumable", "heal": 150, "value": 500, "stack": 1},
+    "ruby": {"type": "currency", "value": 50, "stack": 5},
+    "sapphire": {"type": "currency", "value": 50, "stack": 5},
+    "diamond": {"type": "currency", "value": 100, "stack": 2},
+    "scroll_of_power": {"type": "misc", "value": 150, "stack": 3},
+    "amulet": {"type": "misc", "value": 250, "stack": 1},
+    "crown_of_wisdom": {"type": "misc", "value": 500, "stack": 1},
+    "cursed_pendant": {"type": "misc", "value": 75, "stack": 1},
+    "rope": {"type": "misc", "value": 5, "stack": 20},
+    "pickaxe": {"type": "weapon", "damage": 7, "value": 30, "stack": 1},
+    "holy_water": {"type": "consumable", "heal": 80, "value": 150, "stack": 5},
+}
+
+ITEM_DESCRIPTIONS = {
+    "sword": "A basic steel sword. Reliable and well-balanced.",
+    "shield": "A wooden shield that provides moderate protection.",
+    "potion": "Restores a small amount of health when consumed.",
+    "gold": "Common currency used for trading.",
+    "dagger": "A light blade. Faster but less damaging than a sword.",
+    "bow": "A short bow for ranged attacks.",
+    "chest_armor": "Light chest armor that increases defense.",
+    "torch": "Provides light in dark areas.",
+    "elixir": "A rare restorative potion that heals a large amount of HP.",
+    "magic_ring": "A mysterious ring with unknown magical properties.",
+    "greatsword": "A heavy two-handed sword that deals massive damage.",
+    "plate_armor": "Heavy armor offering excellent protection.",
+    "gem": "A precious gemstone. Valuable to merchants.",
+    "wooden_shield": "A sturdy wooden shield.",
+    "iron_shield": "A solid iron shield for better defense.",
+    "steel_shield": "An advanced steel shield offering superior protection.",
+    "leather_armor": "Soft but flexible armor.",
+    "chain_mail": "Interlocked metal rings provide good protection.",
+    "bronze_armor": "Bronze plating gives strong defense.",
+    "dragon_scale": "Legendary dragon scales. Extremely rare and powerful.",
+    "mithril_sword": "A mystical silver blade with incredible sharpness.",
+    "dragon_slayer": "A legendary blade forged to slay dragons.",
+    "ancient_bow": "An ancient bow of great power and accuracy.",
+    "crossbow": "A mechanized bow for powerful shots.",
+    "mace": "A heavy club ideal for crushing enemies.",
+    "battle_axe": "A large axe built for warfare.",
+    "spear": "A long polearm good for both melee and range.",
+    "healing_potion": "A quality potion that restores moderate HP.",
+    "minor_elixir": "A weak magical elixir.",
+    "legendary_elixir": "An extremely rare potion of legendary power.",
+    "ruby": "A precious red gemstone.",
+    "sapphire": "A precious blue gemstone.",
+    "diamond": "The rarest and most valuable gemstone.",
+    "scroll_of_power": "An ancient magical scroll.",
+    "amulet": "A mystical amulet of protection.",
+    "crown_of_wisdom": "A regal crown said to grant wisdom.",
+    "cursed_pendant": "A pendant with a dark curse.",
+    "rope": "Useful rope for various purposes.",
+    "pickaxe": "A tool for mining or as a weapon.",
+    "holy_water": "Blessed water with healing properties.",
 }
 
 # ─────────────────────────────────────────────
-#  MAP PRESETS
-# ─────────────────────────────────────────────
-# 0 = floor, 1 = wall, S = stairs, C = chest
-MAP_PRESETS = [
-    # Floor 1
-    [
-        "111111111111111",
-        "100000000000001",
-        "100111011101001",
-        "100100010001001",
-        "100100010001001",
-        "10000000000S001",
-        "100100010001001",
-        "100100010001001",
-        "100111011101001",
-        "100000000000001",
-        "111111111111111",
-    ],
-    # Floor 2
-    [
-        "111111111111111",
-        "100000000000001",
-        "101111010111101",
-        "100000010000001",
-        "100000010000001",
-        "100000000000S01",
-        "100000010000001",
-        "100000010000001",
-        "101111010111101",
-        "100000000000001",
-        "111111111111111",
-    ],
-    # Floor 3
-    [
-        "111111111111111",
-        "100000000000001",
-        "100011100011001",
-        "100010100010001",
-        "100010100010001",
-        "10001010001S001",
-        "100010100010001",
-        "100010100010001",
-        "100011100011001",
-        "100000000000001",
-        "111111111111111",
-    ],
-]
+#  MAP PRESETS (disabled) — levels are generated procedurally now
+#  Keep as an empty list in case code references length elsewhere.
+MAP_PRESETS = []
 
 MONSTER_SPAWNS = [
     [{"type": "goblin",   "pos": (3, 3)},
@@ -127,13 +172,100 @@ MONSTER_SPAWNS = [
      {"type": "goblin",   "pos": (4,  8)},
      {"type": "goblin",   "pos": (10, 2)},
      {"type": "skeleton", "pos": (7,  5)}],
+    # Floor 4 spawns
+    [{"type": "goblin",   "pos": (4,  4)},
+     {"type": "goblin",   "pos": (10, 6)},
+     {"type": "skeleton", "pos": (7,  3)}],
+    # Floor 5 spawns
+    [{"type": "skeleton", "pos": (6, 4)},
+     {"type": "goblin",   "pos": (3, 6)},
+     {"type": "goblin",   "pos": (11,6)}],
+    # Floor 6 spawns
+    [{"type": "skeleton", "pos": (7, 2)},
+     {"type": "skeleton", "pos": (8, 6)},
+     {"type": "goblin",   "pos": (4, 4)},
+     {"type": "goblin",   "pos": (10,4)}],
 ]
 
-CHEST_LOOT = [
-    ["sword"],
-    ["shield", "potion"],
-    ["sword", "shield", "potion", "potion"],
+CHEST_LOOT_COMMON = [
+    "sword", "shield", "potion", "gold", "dagger", "bow", "chest_armor", 
+    "torch", "healing_potion", "rope", "wooden_shield", "leather_armor", 
+    "minor_elixir", "spear", "pickaxe"
 ]
+
+CHEST_LOOT_UNCOMMON = [
+    "elixir", "ancient_bow", "crossbow", "mace", "battle_axe", 
+    "iron_shield", "chain_mail", "bronze_armor", "ruby", "sapphire", 
+    "scroll_of_power", "holy_water"
+]
+
+CHEST_LOOT_RARE = [
+    "greatsword", "plate_armor", "mithril_sword", "steel_shield", "amulet"
+]
+
+CHEST_LOOT_LEGENDARY = [
+    "dragon_slayer", "dragon_scale", "crown_of_wisdom", "cursed_pendant", 
+    "legendary_elixir", "diamond", "magic_ring", "gem"
+]
+
+# Legacy CHEST_LOOT kept for compatibility
+CHEST_LOOT = [CHEST_LOOT_COMMON + CHEST_LOOT_UNCOMMON + CHEST_LOOT_RARE + CHEST_LOOT_LEGENDARY]
+
+
+def generate_map(floor_idx, cols=None, rows=None):
+    """Procedurally generate a connected map for higher floors.
+    Ensures rooms are connected by corridors so nothing is fully enclosed by walls.
+    Uses global COLS/ROWS if not provided, so it scales with those constants.
+    Uses GEN_BASE_ROOMS, GEN_ROOMS_PER_FLOOR, GEN_MAX_ROOMS, GEN_CORRIDOR_MIN/MAX,
+    GEN_CHEST_MIN/MAX, and GEN_MONSTER_MIN/MAX constants to control generation.
+    """
+    if cols is None:
+        cols = COLS
+    if rows is None:
+        rows = ROWS
+    grid = [["1"] * cols for _ in range(rows)]
+
+    rooms = []
+    # Calculate room count using GEN_BASE_ROOMS and GEN_ROOMS_PER_FLOOR
+    room_count = GEN_BASE_ROOMS + (floor_idx // GEN_ROOMS_PER_FLOOR)
+    room_count = min(room_count, GEN_MAX_ROOMS)
+
+    for i in range(room_count):
+        rw = random.randint(3, 6)
+        rh = random.randint(2, 4)
+        x = random.randint(1, cols - rw - 1)
+        y = random.randint(1, rows - rh - 1)
+        rooms.append((x, y, rw, rh))
+        for yy in range(y, y + rh):
+            for xx in range(x, x + rw):
+                grid[yy][xx] = "0"
+        if i > 0:
+            px, py, prw, prh = rooms[i - 1]
+            cx = x + rw // 2
+            cy = y + rh // 2
+            pcx = px + prw // 2
+            pcy = py + prh // 2
+            # horizontal corridor from pcx->cx at pcy
+            for xx in range(min(pcx, cx), max(pcx, cx) + 1):
+                grid[pcy][xx] = "0"
+            # vertical corridor from pcy->cy at cx
+            for yy in range(min(pcy, cy), max(pcy, cy) + 1):
+                grid[yy][cx] = "0"
+
+    # Place stairs in last room center
+    scx = rooms[-1][0] + rooms[-1][2] // 2
+    scy = rooms[-1][1] + rooms[-1][3] // 2
+    grid[scy][scx] = "S"
+
+    # Place chests using GEN_CHEST_MIN and GEN_CHEST_MAX
+    chest_count = random.randint(GEN_CHEST_MIN, GEN_CHEST_MAX)
+    candidates = [(c, r) for r in range(1, rows - 1) for c in range(1, cols - 1) if grid[r][c] == "0" and (c, r) != (scx, scy)]
+    random.shuffle(candidates)
+    for i in range(min(chest_count, len(candidates))):
+        cx, cy = candidates[i]
+        grid[cy][cx] = "C"
+
+    return ["".join(row) for row in grid]
 
 # ─────────────────────────────────────────────
 #  MONSTER CLASS
@@ -148,19 +280,23 @@ class Monster:
                      "xp": 15, "symbol": "S"},
     }
 
-    def __init__(self, mtype, col, row):
+    def __init__(self, mtype, col, row, floor_idx=0):
         self.type   = mtype
         self.col    = col
         self.row    = row
         base        = Monster.STATS[mtype]
-        self.hp     = base["hp"]
-        self.max_hp = base["max_hp"]
-        self.damage = base["damage"]
+        
+        # Scale stats based on floor depth (10% increase per floor)
+        scale_factor = 1.0 + (floor_idx * 0.1)
+        
+        self.hp     = int(base["hp"] * scale_factor)
+        self.max_hp = int(base["max_hp"] * scale_factor)
+        self.damage = int(base["damage"] * scale_factor) if base["damage"] > 0 else 0
         self.speed  = base["speed"]
-        self.flee_hp= base["flee_hp"]
+        self.flee_hp= int(base["flee_hp"] * scale_factor)
         self.detect = base["detect"]
         self.color  = base["color"]
-        self.xp     = base["xp"]
+        self.xp     = int(base["xp"] * scale_factor)
         self.symbol = base["symbol"]
         self.alive  = True
         self.canvas_id   = None
@@ -225,7 +361,7 @@ class GameWindow(tk.Toplevel):
         self.settings = settings
         self.title("Dungeon Crawler")
         self.configure(bg=COLORS["bg"])
-        self.resizable(False, False)
+        self.resizable(True, True)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         # ── player data ──
@@ -244,7 +380,7 @@ class GameWindow(tk.Toplevel):
                 "hotbar":    {},   # {item_name: col_index}
             },
             "item_stats":   {},    # {item_name: {…stats copy…}}
-            "equipped":     {"weapon": None, "armor": None},
+            "equipped":     {"weapon": None, "armor": None, "shield": None},
             "turn":         0,
             "floor":        1,
         }
@@ -260,6 +396,12 @@ class GameWindow(tk.Toplevel):
         self.game_over   = False
         self.images      = {}   # loaded PhotoImage cache
         self.monster_img_cache = {}
+        
+        # Initialize UI dimensions (will be recalculated on resize)
+        self.inv_slot_size = 44
+        self.hot_slot_size = 44
+        self.canvas_width = COLS * TILE
+        self.canvas_height = ROWS * TILE
 
         self._build_ui()
         self._load_images()
@@ -268,28 +410,108 @@ class GameWindow(tk.Toplevel):
         self._draw_player()
         self._draw_monsters()
         self._update_ui()
+        
+        # Bind resize event for responsive UI
+        self.bind("<Configure>", self._on_window_resize)
 
         self.bind("<KeyPress>", self._on_key)
         self.focus_set()
 
-    # ── UI CONSTRUCTION ──────────────────────
+    def _on_window_resize(self, event):
+        """Handle window resize/fullscreen and scale UI accordingly."""
+        if event.widget is not self:
+            return
+        
+        # Calculate available space
+        available_width = max(300, self.winfo_width() - 50)
+        available_height = max(200, self.winfo_height() - 50)
+        
+        # Scale inventory slots based on available width (right panel shrinks if needed)
+        right_panel_max_width = int(available_width * 0.25)
+        self.inv_slot_size = max(30, min(50, right_panel_max_width // 9))
+        self.hot_slot_size = self.inv_slot_size
+        
+        # Scale canvas to fit remaining space
+        self.canvas_width = max(300, available_width - right_panel_max_width - 30)
+        self.canvas_height = max(200, available_height - 100)
+        
+        # Update canvas size
+        if hasattr(self, 'canvas'):
+            self.canvas.configure(width=self.canvas_width, height=self.canvas_height)
+            self._draw_map()
+            self._draw_player()
+            self._draw_monsters()
+
+    def _on_window_resize_inventory(self):
+        """Rebuild inventory slots with new size."""
+        if not hasattr(self, 'inv_slots'):
+            return
+        
+        # Clear and rebuild inventory slots
+        for slot in self.inv_slots.values():
+            slot.destroy()
+        self.inv_slots.clear()
+        
+        for r in range(self.GRID_INV_ROWS):
+            for c in range(self.GRID_INV_COLS):
+                slot = tk.Canvas(self.inv_frame,
+                                 width=self.inv_slot_size,
+                                 height=self.inv_slot_size,
+                                 bg=COLORS["slot_bg"],
+                                 highlightthickness=1,
+                                 highlightbackground=COLORS["slot_border"])
+                slot.grid(row=r, column=c, padx=1, pady=1)
+                slot.bind("<Button-1>",
+                          lambda e, cc=c, rr=r: self._on_inv_click(cc, rr))
+                self.inv_slots[(c, r)] = slot
+        
+        self._draw_inventory()
+
+    def _on_window_resize_hotbar(self):
+        """Rebuild hotbar slots with new size."""
+        if not hasattr(self, 'hot_slots'):
+            return
+        
+        # Clear and rebuild hotbar slots
+        for slot in self.hot_slots.values():
+            slot.destroy()
+        self.hot_slots.clear()
+        
+        for c in range(self.HOT_COLS):
+            num = tk.Label(self.hot_frame, text=str(c + 1),
+                           bg=COLORS["panel"], fg=COLORS["dim"],
+                           font=("Consolas", 7))
+            num.grid(row=0, column=c)
+            slot = tk.Canvas(self.hot_frame,
+                             width=self.hot_slot_size,
+                             height=self.hot_slot_size,
+                             bg=COLORS["slot_bg"],
+                             highlightthickness=1,
+                             highlightbackground=COLORS["slot_border"])
+            slot.grid(row=1, column=c, padx=1, pady=1)
+            slot.bind("<Button-1>",
+                      lambda e, cc=c: self._on_hot_click(cc))
+            self.hot_slots[c] = slot
+        
+        self._draw_hotbar()
+
     def _build_ui(self):
         # Left: game canvas
-        canvas_w = COLS * TILE
-        canvas_h = ROWS * TILE
+        canvas_w = self.canvas_width
+        canvas_h = self.canvas_height
 
         self.left_frame = tk.Frame(self, bg=COLORS["bg"])
-        self.left_frame.grid(row=0, column=0, padx=8, pady=8, sticky="n")
+        self.left_frame.grid(row=0, column=0, padx=8, pady=8, sticky="nsew")
 
         self.canvas = tk.Canvas(self.left_frame,
                                 width=canvas_w, height=canvas_h,
                                 bg=COLORS["wall"], highlightthickness=2,
                                 highlightbackground=COLORS["border"])
-        self.canvas.pack()
+        self.canvas.pack(fill="both", expand=True)
 
         # Log
         self.log_frame = tk.Frame(self.left_frame, bg=COLORS["panel"],
-                                  width=canvas_w, height=80)
+                                  height=80)
         self.log_frame.pack(fill="x", pady=(4, 0))
         self.log_frame.pack_propagate(False)
         self.log_text = tk.Text(self.log_frame, bg=COLORS["panel"],
@@ -300,11 +522,15 @@ class GameWindow(tk.Toplevel):
 
         # Right: stats + inventory
         self.right_frame = tk.Frame(self, bg=COLORS["bg"])
-        self.right_frame.grid(row=0, column=1, padx=(0, 8), pady=8, sticky="n")
+        self.right_frame.grid(row=0, column=1, padx=(0, 8), pady=8, sticky="nsew")
 
         self._build_stats_panel()
         self._build_inventory_panel()
         self._build_hotbar_panel()
+
+        # Configure grid weights for responsiveness
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
     def _build_stats_panel(self):
         f = tk.Frame(self.right_frame, bg=COLORS["panel"],
@@ -366,8 +592,8 @@ class GameWindow(tk.Toplevel):
         for r in range(self.GRID_INV_ROWS):
             for c in range(self.GRID_INV_COLS):
                 slot = tk.Canvas(self.inv_frame,
-                                 width=self.INV_SLOT_SIZE,
-                                 height=self.INV_SLOT_SIZE,
+                                 width=self.inv_slot_size,
+                                 height=self.inv_slot_size,
                                  bg=COLORS["slot_bg"],
                                  highlightthickness=1,
                                  highlightbackground=COLORS["slot_border"])
@@ -390,8 +616,8 @@ class GameWindow(tk.Toplevel):
                            font=("Consolas", 7))
             num.grid(row=0, column=c)
             slot = tk.Canvas(self.hot_frame,
-                             width=self.HOT_SLOT_SIZE,
-                             height=self.HOT_SLOT_SIZE,
+                             width=self.hot_slot_size,
+                             height=self.hot_slot_size,
                              bg=COLORS["slot_bg"],
                              highlightthickness=1,
                              highlightbackground=COLORS["slot_border"])
@@ -429,8 +655,8 @@ class GameWindow(tk.Toplevel):
 
     # ── FLOOR LOADING ─────────────────────────
     def _load_floor(self):
-        idx = min(self.floor_idx, len(MAP_PRESETS) - 1)
-        raw = MAP_PRESETS[idx]
+        # Always generate the map procedurally
+        raw = generate_map(self.floor_idx)
         self.tilemap = [list(row) for row in raw]
         self.monsters = []
         self.chests   = []
@@ -446,23 +672,55 @@ class GameWindow(tk.Toplevel):
                     self.chests.append([c, r, False])
                     self.tilemap[r][c] = "0"
 
-        # Spawn monsters
-        spawns = MONSTER_SPAWNS[min(self.floor_idx, len(MONSTER_SPAWNS) - 1)]
+        # Spawn monsters procedurally using GEN_MONSTER_MIN/MAX
+        spawns = []
+        floor_tiles = [(c, r) for r, row in enumerate(self.tilemap)
+                        for c, ch in enumerate(row) if ch == "0"]
+        random.shuffle(floor_tiles)
+        monster_count = random.randint(GEN_MONSTER_MIN, GEN_MONSTER_MAX)
+        for i in range(monster_count):
+            if not floor_tiles:
+                break
+            mc, mr = floor_tiles.pop()
+            # Skeleton probability increases with floor depth
+            skeleton_chance = min(0.85, 0.2 + 0.03 * self.floor_idx)
+            mtype = "skeleton" if random.random() < skeleton_chance else "goblin"
+            spawns.append({"type": mtype, "pos": (mc, mr)})
+
         for s in spawns:
             mc, mr = s["pos"]
-            if self.tilemap[mr][mc] != "1":
-                self.monsters.append(Monster(s["type"], mc, mr))
+            if 0 <= mr < len(self.tilemap) and 0 <= mc < len(self.tilemap[0]) and self.tilemap[mr][mc] != "1":
+                self.monsters.append(Monster(s["type"], mc, mr, self.floor_idx))
 
-        # Place player at first open tile top-left
+        # Place player at first open tile, avoiding existing monsters and chests
         placed = False
-        for r in range(1, ROWS):
-            for c in range(1, COLS):
-                if self.tilemap[r][c] == "0":
-                    self.player["position"] = {"col": c, "row": r}
-                    placed = True
-                    break
+        for r in range(1, len(self.tilemap)):
+            for c in range(1, len(self.tilemap[0])):
+                if self.tilemap[r][c] != "0":
+                    continue
+                # Check if a monster is here
+                if any(m.col == c and m.row == r for m in self.monsters):
+                    continue
+                # Check if a chest is here
+                if any(ch[0] == c and ch[1] == r for ch in self.chests):
+                    continue
+                # Valid spawn location
+                self.player["position"] = {"col": c, "row": r}
+                placed = True
+                break
             if placed:
                 break
+
+        if not placed:
+            # Fallback: find any open floor tile
+            for r in range(1, len(self.tilemap)):
+                for c in range(1, len(self.tilemap[0])):
+                    if self.tilemap[r][c] == "0":
+                        self.player["position"] = {"col": c, "row": r}
+                        placed = True
+                        break
+                if placed:
+                    break
 
         self._add_log(f"Entered floor {self.player['floor']}.")
 
@@ -597,7 +855,8 @@ class GameWindow(tk.Toplevel):
 
         eq_w = self.player["equipped"]["weapon"]
         eq_a = self.player["equipped"]["armor"]
-        eq_txt = (f"{eq_w or '—'} / {eq_a or '—'}")
+        eq_s = self.player["equipped"]["shield"]
+        eq_txt = (f"W:{eq_w or '—'} | A:{eq_a or '—'} | S:{eq_s or '—'}")
         self.lbl_eq["text"] = eq_txt
 
         self._draw_hotbar()
@@ -620,35 +879,62 @@ class GameWindow(tk.Toplevel):
             if item:
                 img = self._get_item_image(item.split(":")[0])
                 if img:
-                    slot.create_image(self.HOT_SLOT_SIZE//2, self.HOT_SLOT_SIZE//2,
+                    slot.create_image(self.hot_slot_size//2, self.hot_slot_size//2,
                                       image=img)
                 else:
-                    slot.create_rectangle(4, 4, self.HOT_SLOT_SIZE-4,
-                                          self.HOT_SLOT_SIZE-4,
+                    slot.create_rectangle(4, 4, self.hot_slot_size-4,
+                                          self.hot_slot_size-4,
                                           fill=COLORS["accent2"], outline="")
-                    slot.create_text(self.HOT_SLOT_SIZE//2, self.HOT_SLOT_SIZE//2,
+                    slot.create_text(self.hot_slot_size//2, self.hot_slot_size//2,
                                      text=item.split(":")[0][:3].upper(),
                                      fill=COLORS["text"], font=("Consolas", 7))
 
     def _draw_inventory(self):
         inv = self.player["inventory"]["inventory"]
+        
+        # Group items by base name and count stackable items
+        item_groups = {}  # {base_name: [(key, slot_pos), ...]}
+        for key, slot_pos in inv.items():
+            base_name = key.split(":")[0]
+            if base_name not in item_groups:
+                item_groups[base_name] = []
+            item_groups[base_name].append((key, slot_pos))
+        
+        # Build display map: only show first of each item type with count
+        display_map = {}  # {(c, r): (item_name, count, first_key)}
+        for base_name, items in item_groups.items():
+            # Use first item's slot position
+            first_key, first_slot = items[0]
+            count = len(items)
+            display_map[first_slot] = (base_name, count, first_key)
+        
         slot_map = {v: k for k, v in inv.items()}
 
         for (c, r), slot in self.inv_slots.items():
             slot.delete("all")
-            item = slot_map.get((c, r))
-            if item:
-                img = self._get_item_image(item.split(":")[0])
+            
+            if (c, r) in display_map:
+                base_name, count, first_key = display_map[(c, r)]
+                img = self._get_item_image(base_name)
                 if img:
-                    slot.create_image(self.INV_SLOT_SIZE//2, self.INV_SLOT_SIZE//2,
+                    slot.create_image(self.inv_slot_size//2, self.inv_slot_size//2,
                                       image=img)
                 else:
-                    slot.create_rectangle(4, 4, self.INV_SLOT_SIZE-4,
-                                          self.INV_SLOT_SIZE-4,
+                    slot.create_rectangle(4, 4, self.inv_slot_size-4,
+                                          self.inv_slot_size-4,
                                           fill=COLORS["accent2"], outline="")
-                    slot.create_text(self.INV_SLOT_SIZE//2, self.INV_SLOT_SIZE//2,
-                                     text=item.split(":")[0][:3].upper(),
+                    slot.create_text(self.inv_slot_size//2, self.inv_slot_size//2,
+                                     text=base_name[:3].upper(),
                                      fill=COLORS["text"], font=("Consolas", 7))
+                
+                # Show count if more than 1
+                if count > 1:
+                    slot.create_rectangle(self.inv_slot_size-12, self.inv_slot_size-12,
+                                         self.inv_slot_size-2, self.inv_slot_size-2,
+                                         fill=COLORS["accent"], outline="")
+                    slot.create_text(self.inv_slot_size-7, self.inv_slot_size-7,
+                                    text=str(count), fill=COLORS["bg"],
+                                    font=("Consolas", 6, "bold"))
 
     # ── INPUT ─────────────────────────────────
     def _on_key(self, event):
@@ -730,8 +1016,12 @@ class GameWindow(tk.Toplevel):
                 return
 
     def _descend(self):
+        # Prevent descending beyond max floor
+        if self.player.get("floor", 1) >= MAX_FLOORS:
+            self._add_log("You cannot descend further.")
+            return
         self.player["floor"] += 1
-        self.floor_idx = min(self.floor_idx + 1, len(MAP_PRESETS) - 1)
+        self.floor_idx += 1
         self.canvas.delete("all")
         self._load_floor()
         self._draw_map()
@@ -741,8 +1031,21 @@ class GameWindow(tk.Toplevel):
 
     def _open_chest(self, ch):
         ch[2] = True  # mark opened
-        idx   = min(self.floor_idx, len(CHEST_LOOT) - 1)
-        loot  = random.choice(CHEST_LOOT[idx])
+        # Calculate floor progress as percentage of max floors
+        floor_progress = (self.floor_idx / MAX_FLOORS) * 100
+        
+        # Build available loot pool based on progress
+        available_loot = list(CHEST_LOOT_COMMON)
+        
+        if floor_progress >= 25:
+            available_loot += CHEST_LOOT_UNCOMMON
+        if floor_progress >= 50:
+            available_loot += CHEST_LOOT_RARE
+        if floor_progress >= 75:
+            available_loot += CHEST_LOOT_LEGENDARY
+        
+        # Select random item from available pool
+        loot = random.choice(available_loot)
         self._add_item_to_inventory(loot)
         self._add_log(f"Opened chest: found {loot}!")
         self._draw_map()
@@ -823,15 +1126,87 @@ class GameWindow(tk.Toplevel):
         inv = self.player["inventory"]["inventory"]
         for k, pos in list(inv.items()):
             if pos == (c, r):
-                self._use_item(k, "inventory")
+                self._show_item_popup(k, "inventory")
                 return
 
     def _on_hot_click(self, c):
         hot = self.player["inventory"]["hotbar"]
         for k, pos in list(hot.items()):
             if pos == c:
-                self._use_item(k, "hotbar")
+                self._show_item_popup(k, "hotbar")
                 return
+
+    def _show_item_popup(self, key, source):
+        """Show a modal popup with item description and an option to use/equip/discard."""
+        name = key.split(":")[0]
+        stats = self.player["item_stats"].get(key, ITEM_STATS.get(name, {}))
+        itype = stats.get("type", "")
+        desc = ITEM_DESCRIPTIONS.get(name, "No description available.")
+
+        win = tk.Toplevel(self)
+        win.title(name.capitalize())
+        win.transient(self)
+        win.grab_set()
+        win.resizable(False, False)
+
+        tk.Label(win, text=name.capitalize(), font=("Consolas", 11, "bold")).pack(padx=12, pady=(8, 4))
+        tk.Label(win, text=desc, wraplength=320, justify="left").pack(padx=12)
+
+        # Stats summary
+        stat_lines = []
+        if itype == "weapon":
+            stat_lines.append(f"Damage: {stats.get('damage', '?')}")
+        if itype == "armor":
+            stat_lines.append(f"Defense: {stats.get('defense', '?')}")
+        if itype == "shield":
+            stat_lines.append(f"Defense: {stats.get('defense', '?')}")
+        if itype == "consumable":
+            if 'heal' in stats:
+                stat_lines.append(f"Heals: {stats.get('heal')}")
+        if 'value' in stats:
+            stat_lines.append(f"Value: {stats.get('value')}")
+        if stat_lines:
+            tk.Label(win, text=" | ".join(stat_lines), fg=COLORS['dim'], font=("Consolas", 9)).pack(padx=12, pady=(6, 0))
+
+        btn_frame = tk.Frame(win)
+        btn_frame.pack(pady=10)
+
+        action_text = "Equip" if itype in ("weapon", "armor", "shield") else "Use"
+        def _do_action():
+            self._use_item(key, source)
+            try:
+                win.destroy()
+            except Exception:
+                pass
+        
+        def _do_discard():
+            self._discard_item(key, source)
+            try:
+                win.destroy()
+            except Exception:
+                pass
+
+        tk.Button(btn_frame, text=action_text, width=10, command=_do_action).pack(side="left", padx=4)
+        tk.Button(btn_frame, text="Discard", width=10, command=_do_discard).pack(side="left", padx=4)
+        tk.Button(btn_frame, text="Cancel", width=10, command=win.destroy).pack(side="left", padx=4)
+        win.bind("<Escape>", lambda e: win.destroy())
+
+    def _discard_item(self, key, source):
+        """Remove an item from inventory or hotbar."""
+        name = key.split(":")[0]
+        
+        if source == "inventory":
+            if key in self.player["inventory"]["inventory"]:
+                del self.player["inventory"]["inventory"][key]
+        else:  # hotbar
+            if key in self.player["inventory"]["hotbar"]:
+                del self.player["inventory"]["hotbar"][key]
+        
+        if key in self.player["item_stats"]:
+            del self.player["item_stats"][key]
+        
+        self._add_log(f"Discarded {name}.")
+        self._update_ui()
 
     def _use_hotbar_item(self):
         hot = self.player["inventory"]["hotbar"]
@@ -867,6 +1242,17 @@ class GameWindow(tk.Toplevel):
         elif itype == "armor":
             self.player["equipped"]["armor"] = name
             ps["defense"] = stats.get("defense", 0)
+            if self.player["equipped"]["shield"]:
+                shield_stats = self.player["item_stats"].get(self.player["equipped"]["shield"], {})
+                ps["defense"] += shield_stats.get("defense", 0)
+            self._add_log(f"Equipped {name} (DEF +{stats.get('defense',0)}).")
+
+        elif itype == "shield":
+            self.player["equipped"]["shield"] = name
+            ps["defense"] = stats.get("defense", 0)
+            if self.player["equipped"]["armor"]:
+                armor_stats = self.player["item_stats"].get(self.player["equipped"]["armor"], {})
+                ps["defense"] += armor_stats.get("defense", 0)
             self._add_log(f"Equipped {name} (DEF +{stats.get('defense',0)}).")
 
         else:
@@ -887,14 +1273,46 @@ class GameWindow(tk.Toplevel):
 
     def _game_over(self):
         self.game_over = True
-        self.canvas.create_rectangle(0, 0, COLS*TILE, ROWS*TILE,
-                                     fill="#000000", stipple="gray50",
-                                     tags="overlay")
-        self.canvas.create_text(COLS*TILE//2, ROWS*TILE//2,
-                                text="YOU DIED",
-                                fill=COLORS["hp_low"],
-                                font=("Consolas", 28, "bold"),
-                                tags="overlay")
+        
+        # Create a modal game over window
+        win = tk.Toplevel(self)
+        win.title("Game Over")
+        win.transient(self)
+        win.grab_set()
+        win.resizable(False, False)
+        win.configure(bg=COLORS["bg"])
+        
+        # Center the window on screen
+        win.geometry("400x300+300+200")
+        
+        # You Died message
+        tk.Label(win, text="YOU DIED", bg=COLORS["bg"],
+                 fg=COLORS["hp_low"], font=("Consolas", 32, "bold")).pack(pady=(40, 10))
+        
+        # Stats summary
+        ps = self.player["player_stats"]
+        stats_text = f"""
+Floor Reached: {self.player['floor']}
+Level: {ps['level']}
+Total XP: {ps['xp']}
+"""
+        tk.Label(win, text=stats_text, bg=COLORS["bg"],
+                 fg=COLORS["text"], font=("Consolas", 11), justify="center").pack(pady=10)
+        
+        # Buttons
+        btn_frame = tk.Frame(win, bg=COLORS["bg"])
+        btn_frame.pack(pady=20)
+        
+        tk.Button(btn_frame, text="Return to Menu",
+                  bg=COLORS["button"], fg=COLORS["text"],
+                  font=("Consolas", 11, "bold"),
+                  relief="flat", width=16,
+                  activebackground=COLORS["button_h"],
+                  command=lambda: self._on_close()).pack(padx=6, pady=6)
+        
+        win.focus_set()
+        win.bind("<Return>", lambda e: self._on_close())
+        win.bind("<Escape>", lambda e: self._on_close())
 
     def _on_close(self):
         self.master.destroy()
