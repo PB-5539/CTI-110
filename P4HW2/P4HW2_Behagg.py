@@ -1,4 +1,4 @@
-#Parker Behagg 
+#Parker Behagg
 #3/27/26
 #P4HW2
 name = ""
@@ -16,6 +16,7 @@ while name.lower() != "done":
             overtime_hours = hours - 40
             regular_pay = 40 * pay
             overtime_pay = overtime_hours * (pay * 1.5)
+            total_pay = regular_pay + overtime_pay
         else:
             overtime_hours = 0
             regular_pay = hours * pay
@@ -23,7 +24,7 @@ while name.lower() != "done":
             total_pay = regular_pay + overtime_pay
         temp_list = [hours, pay, overtime_hours, overtime_pay, regular_pay, total_pay]
         employees[name] = temp_list
-
+        complete_pay += total_pay
         print("--------------------------------------------------------------------summary---------------------------------------------------------")
         print("employee name: ", name)
         print()
