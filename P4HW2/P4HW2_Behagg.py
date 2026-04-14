@@ -2,6 +2,7 @@
 #3/27/26
 #P4HW2
 name = ""
+complete_pay = 0
 employees = {}
 total_pay = 0
 while name.lower() != "done":
@@ -16,7 +17,7 @@ while name.lower() != "done":
             overtime_hours = hours - 40
             regular_pay = 40 * pay
             overtime_pay = overtime_hours * (pay * 1.5)
-            total_pay = regular_pay + overtime_pay
+            total_pay = regular_pay + overtime_pay #i forgot to add this line in the submission
         else:
             overtime_hours = 0
             regular_pay = hours * pay
@@ -31,3 +32,4 @@ while name.lower() != "done":
         print(f"{'Hours Worked':<20} {'Pay Rate':<20} {'Overtime Hours':<20} {'Overtime Pay':<20} {'Regular Pay':<20} {'Total Pay':<20}")
         print("------------------------------------------------------------------------------------------------------------------------------------")
         print(f"{hours:<20.2f} ${pay:<20.2f} {overtime_hours:<20.2f} ${overtime_pay:<20.2f} ${regular_pay:<20.2f} ${total_pay:<20.2f}")
+print(f"Total Pay for All Employees: ${complete_pay:<20.2f}")
